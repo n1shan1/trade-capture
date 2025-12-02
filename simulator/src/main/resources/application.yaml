@@ -1,0 +1,18 @@
+server:
+  port: 4000
+
+spring:
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER:guest}
+    password: ${RABBIT_PASS:guest}
+
+app:
+  ingestion:
+    queue: ${APP_INGESTION_QUEUE:trade.ingest.raw}
+  simulator:
+    rate: 10  # messages per second
+    duration: 5  # seconds to run
+    # keep legacy property used by the simulator code
+    queue: ${APP_INGESTION_QUEUE:trade.ingest.raw}
