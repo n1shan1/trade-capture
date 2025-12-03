@@ -3,6 +3,8 @@ package com.pms.trade_capture.domain;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.hibernate.annotations.UuidGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -20,6 +22,7 @@ import lombok.NoArgsConstructor;
 public class DlqEntry {
 
     @Id
+    @UuidGenerator
     private UUID id;
 
     @Column(name = "failed_at", nullable = false)
@@ -32,16 +35,9 @@ public class DlqEntry {
     @Column(name = "error_detail")
     private String errorDetail;
 
-    public DlqEntry(String s, String message) {
+    public DlqEntry(String rawMessage, String errorDetail) {
+        this.rawMessage = rawMessage;
+        this.errorDetail = errorDetail;
     }
 
-    // protected DlqEntry() {}
-    //
-    // public DlqEntry(String rawMessage, String errorDetail) {
-    // this.id = UUID.randomUUID();
-    // this.rawMessage = rawMessage;
-    // this.errorDetail = errorDetail;
-    // }
-    //
-    // // getters...
 }

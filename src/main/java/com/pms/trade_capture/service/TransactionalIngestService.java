@@ -1,41 +1,44 @@
-package com.pms.trade_capture.service;
+// package com.pms.trade_capture.service;
 
-import com.pms.trade_capture.domain.OutboxEvent;
-import com.pms.trade_capture.domain.SafeStoreTrade;
-import com.pms.trade_capture.dto.TradeEventDto;
-import com.pms.trade_capture.repository.OutboxRepository;
-import com.pms.trade_capture.repository.SafeStoreRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
+// import java.util.List;
+// import java.util.stream.Collectors;
+// import java.util.stream.IntStream;
 
-import java.time.LocalDateTime;
-import java.util.List;
+// import org.springframework.stereotype.Service;
 
-@Service
-public class TransactionalIngestService {
+// import com.pms.trade_capture.domain.OutboxEvent;
+// import com.pms.trade_capture.domain.SafeStoreTrade;
+// import com.pms.trade_capture.dto.TradeEventDto;
+// import com.pms.trade_capture.dto.TradeEventMapper;
+// import com.pms.trade_capture.repository.OutboxRepository;
+// import com.pms.trade_capture.repository.SafeStoreRepository;
 
-    private final SafeStoreRepository safeRepo;
-    private final OutboxRepository outboxRepo;
+// import jakarta.transaction.Transactional;
 
-    public TransactionalIngestService(SafeStoreRepository safeRepo, OutboxRepository outboxRepo) {
-        this.safeRepo = safeRepo;
-        this.outboxRepo = outboxRepo;
-    }
+// @Service
+// public class TransactionalIngestService {
 
-    @Transactional
-    public void writeBatch(List<TradeEventDto> events, List<byte[]> protobufPayloads) {
-        // events and payloads must be same size and aligned
-        for (int i = 0; i < events.size(); i++) {
-            TradeEventDto e = events.get(i);
-            SafeStoreTrade ss = new SafeStoreTrade(
-                    e.portfolioId, e.tradeId, e.symbol, e.side,
-                    e.pricePerStock, e.quantity, LocalDateTime.ofInstant(e.timestamp, java.time.ZoneOffset.UTC)
-            );
-            safeRepo.save(ss);
+//     private final SafeStoreRepository safeRepo;
+//     private final OutboxRepository outboxRepo;
 
-            OutboxEvent oe = new OutboxEvent(e.portfolioId, e.tradeId, protobufPayloads.get(i));
-            outboxRepo.save(oe);
-        }
-    }
-}
+//     public TransactionalIngestService(SafeStoreRepository safeRepo, OutboxRepository outboxRepo) {
+//         this.safeRepo = safeRepo;
+//         this.outboxRepo = outboxRepo;
+//     }
+
+//     @Transactional
+//     public void writeBatch(List<TradeEventDto> events, List<byte[]> protobufPayloads) {
+//         // events and payloads must be same size and aligned
+//         List<SafeStoreTrade> safeTrades = events.stream()
+//                 .map(TradeEventMapper::toSafeStoreTrade)
+//                 .collect(Collectors.toList());
+
+//         List<OutboxEvent> outboxEvents = IntStream.range(0, events.size())
+//                 .mapToObj(i -> TradeEventMapper.toOutboxEvent(events.get(i), protobufPayloads.get(i)))
+//                 .collect(Collectors.toList());
+
+//         safeRepo.saveAll(safeTrades);
+//         outboxRepo.saveAll(outboxEvents);
+//     }
+// }
 

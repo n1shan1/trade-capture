@@ -1,12 +1,12 @@
 package com.pms.trade_simulator;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.protobuf.Timestamp;
+import com.pms.trade_simulator.proto.TradeEventProto;
+import com.rabbitmq.stream.Message;
+import com.rabbitmq.stream.Producer;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,67 +22,81 @@ public class TradeSimulatorService {
 
     private static final Logger log = LoggerFactory.getLogger(TradeSimulatorService.class);
 
-    private final RabbitTemplate rabbitTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private final Producer producer;
 
-    @Value("${app.simulator.queue}")
-    private String queueName;
+    @Value("${app.simulator.rate-per-minute:6}")
+    private int ratePerMinute;
 
-    @Value("${app.simulator.rate:100}")
-    private int ratePerSecond;
-
-    @Value("${app.simulator.duration:60}")
-    private int durationSeconds;
+    @Value("${app.simulator.run-indefinitely:true}")
+    private boolean runIndefinitely;
 
     private final Random random = new Random();
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
 
-    public TradeSimulatorService(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
+    public TradeSimulatorService(Producer producer) {
+        this.producer = producer;
     }
 
     @PostConstruct
     public void startSimulation() {
-        log.info("Starting trade simulation: {} msg/sec for {} seconds", ratePerSecond, durationSeconds);
+        long intervalMillis = (60 * 1000) / ratePerMinute; // Convert rate per minute to interval in milliseconds
+        log.info("Starting trade simulation: {} msg/min (every {} ms), run indefinitely: {}", 
+                 ratePerMinute, intervalMillis, runIndefinitely);
 
-        long intervalMillis = 1000 / ratePerSecond;
-        int totalMessages = ratePerSecond * durationSeconds;
-
-        for (int i = 0; i < totalMessages; i++) {
-            executor.schedule(() -> sendTradeEvent(), i * intervalMillis, TimeUnit.MILLISECONDS);
+        if (runIndefinitely) {
+            // Schedule periodic execution indefinitely
+            executor.scheduleAtFixedRate(() -> sendTradeEvent(), 0, intervalMillis, TimeUnit.MILLISECONDS);
+        } else {
+            // Legacy behavior: run for fixed duration
+            int totalMessages = ratePerMinute;
+            for (int i = 0; i < totalMessages; i++) {
+                executor.schedule(() -> sendTradeEvent(), i * intervalMillis, TimeUnit.MILLISECONDS);
+            }
+            executor.schedule(() -> {
+                log.info("Simulation completed");
+                executor.shutdown();
+                System.exit(0);
+            }, (totalMessages * intervalMillis) / 1000, TimeUnit.SECONDS);
         }
-
-        // Shutdown after duration
-        executor.schedule(() -> {
-            log.info("Simulation completed");
-            executor.shutdown();
-            System.exit(0);
-        }, durationSeconds, TimeUnit.SECONDS);
     }
 
     private void sendTradeEvent() {
-        TradeEventDto event = generateRandomTradeEvent();
-        try {
-            String json = objectMapper.writeValueAsString(event);
-            rabbitTemplate.convertAndSend(queueName, json);
-            log.debug("Sent trade event: {}", event.getTradeId());
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize trade event", e);
-        }
+        TradeEventProto event = generateRandomTradeEvent();
+        log.info("Sending trade event: portfolioId={}, tradeId={}, symbol={}, side={}, price={}, quantity={}",
+                event.getPortfolioId(), event.getTradeId(), event.getSymbol(), event.getSide(),
+                event.getPricePerStock(), event.getQuantity());
+        Message message = producer.messageBuilder().addData(event.toByteArray()).build();
+        producer.send(message, confirmation -> {
+            if (confirmation.isConfirmed()) {
+                log.info("Message sent successfully: tradeId={}", event.getTradeId());
+            } else {
+                log.error("Message failed to send: tradeId={}", event.getTradeId());
+            }
+        });
     }
 
-    private TradeEventDto generateRandomTradeEvent() {
+    private TradeEventProto generateRandomTradeEvent() {
         String[] symbols = { "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "NVDA", "META", "NFLX" };
         String[] sides = { "BUY", "SELL" };
 
-        TradeEventDto dto = new TradeEventDto();
-        dto.setPortfolioId(UUID.randomUUID());
-        dto.setTradeId(UUID.randomUUID());
-        dto.setSymbol(symbols[random.nextInt(symbols.length)]);
-        dto.setSide(sides[random.nextInt(sides.length)]);
-        dto.setPricePerStock(100 + random.nextDouble() * 900); // 100-1000
-        dto.setQuantity(1 + random.nextInt(1000)); // 1-1000
-        dto.setTimestamp(Instant.now());
-        return dto;
+        UUID portfolioId = UUID.randomUUID();
+        UUID tradeId = UUID.randomUUID();
+        String symbol = symbols[random.nextInt(symbols.length)];
+        String side = sides[random.nextInt(sides.length)];
+        double price = 100 + random.nextDouble() * 900; // 100-1000
+        long quantity = 1 + random.nextInt(1000); // 1-1000
+        Instant timestamp = Instant.now();
+
+        Timestamp ts = Timestamp.newBuilder().setSeconds(timestamp.getEpochSecond()).setNanos(timestamp.getNano()).build();
+
+        return TradeEventProto.newBuilder()
+                .setPortfolioId(portfolioId.toString())
+                .setTradeId(tradeId.toString())
+                .setSymbol(symbol)
+                .setSide(side)
+                .setPricePerStock(price)
+                .setQuantity(quantity)
+                .setTimestamp(ts)
+                .build();
     }
 }

@@ -8,4 +8,8 @@
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
+
+    <!-- Enable detailed Hibernate JDBC bind logging for debugging payload binding issues -->
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" />
+    <logger name="org.hibernate.type.descriptor.sql" level="TRACE" />
 </configuration>

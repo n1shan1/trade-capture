@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package com.pms.trade_simulator.proto;
+package com.pms.kafka_consumer.proto;
 
-option java_package = "com.pms.trade_simulator.proto";
+option java_package = "com.pms.kafka_consumer.proto";
 option java_multiple_files = true;
 
 import "google/protobuf/timestamp.proto";

@@ -1,32 +1,41 @@
 server:
-  port: 8080
+  port: 8082
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pms-db}
-    username: ${DB_USER:pms-usr}
-    password: ${DB_PASS:pms-pw}
-    initialization-mode: never
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pmsdb}
+    username: ${DB_USER:pms}
+    password: ${DB_PASS:pms}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         jdbc:
           time_zone: UTC
-  rabbitmq:
-    host: ${RABBIT_HOST:localhost}
-    port: ${RABBIT_PORT:5672}
-    username: ${RABBIT_USER:guest}
-    password: ${RABBIT_PASS:guest}
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
-      properties:
-        schema.registry.url: http://localhost:8081
-
+      acks: all
+      enable-idempotence: true
+      max-in-flight-requests-per-connection: 1
+      retries: 2147483647
+      # Additional reliability settings
+      linger-ms: 10
+      batch-size: 32768
+      compression-type: snappy
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+      # Auto-register schemas (set false for production with pre-registered schemas)
+      auto.register.schemas: ${AUTO_REGISTER_SCHEMAS:true}
 
 management:
   endpoints:
@@ -37,9 +46,24 @@ management:
     health:
       show-details: when_authorized
 
+# Application-specific configuration - all externalized
 app:
-  ingestion:
-    queue: trade.ingest.raw
-    batch-size: 200
-    ack-mode: MANUAL
-    max-retries: 5
+  rabbit:
+    stream:
+      name: ${RABBIT_STREAM_NAME:trade-events-stream}
+      host: ${RABBIT_HOST:localhost}
+      port: ${RABBIT_STREAM_PORT:5552}
+      consumer-name: ${RABBIT_CONSUMER_NAME:trade-capture}
+      
+  ingest:
+    batch:
+      max-size-per-portfolio: ${BATCH_MAX_SIZE_PER_PORTFOLIO:100}
+      flush-interval-ms: ${BATCH_FLUSH_INTERVAL_MS:200}
+      
+  kafka:
+    trade-topic: ${TRADE_TOPIC_NAME:raw-trades-proto}
+    
+  outbox:
+    poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:500}
+    batch-size: ${OUTBOX_BATCH_SIZE:100}
+

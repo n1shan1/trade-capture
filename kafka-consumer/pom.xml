@@ -5,26 +5,34 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>3.5.8</version>
         <relativePath/>
     </parent>
     <groupId>com.pms</groupId>
-    <artifactId>trade-simulator</artifactId>
+    <artifactId>kafka-consumer</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>trade-simulator</name>
-    <description>Trade Data Simulator</description>
+    <name>kafka-consumer</name>
+    <description>Kafka Consumer for Trade Events</description>
     <properties>
         <java.version>21</java.version>
+        <confluent.version>7.6.0</confluent.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.rabbitmq</groupId>
-            <artifactId>stream-client</artifactId>
-            <version>0.15.0</version>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -32,8 +40,18 @@
             <version>3.25.1</version>
         </dependency>
         <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-protobuf-serializer</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -61,7 +79,6 @@
                     <execution>
                         <goals>
                             <goal>compile</goal>
-                            <goal>test-compile</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -72,4 +89,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

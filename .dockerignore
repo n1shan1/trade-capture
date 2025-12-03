@@ -1,0 +1,37 @@
+# Exclude build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# Exclude Maven wrapper
+.mvn/
+mvnw
+mvnw.cmd
+
+# Exclude IDE files
+.idea/
+*.iml
+.vscode/
+
+# Exclude version control
+.git/
+.gitignore
+
+# Exclude logs and temporary files
+logs/
+*.log
+*.tmp
+.DS_Store
+
+# Exclude environment files
+.env
+.env.local
+
+# Exclude Docker files if not needed in build context
+Dockerfile
+docker-compose.yml
+
+# Exclude documentation if not needed
+README.md
+docs/
