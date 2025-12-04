@@ -1,0 +1,18 @@
+server:
+  port: 4000
+
+spring:
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER:guest}
+    password: ${RABBIT_PASS:guest}
+
+app:
+  simulator:
+    stream:
+      name: ${RABBIT_STREAM_NAME:trade-events-stream}
+      host: ${RABBIT_STREAM_HOST:localhost}
+      port: ${RABBIT_STREAM_PORT:5552}
+    rate-per-minute: 60  # messages per minute (1 every 10 seconds) - slow flow
+    run-indefinitely: true  # run continuously as a stream

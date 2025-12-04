@@ -59,7 +59,7 @@ public class KafkaConfig {
         // Performance tuning
         props.put(ProducerConfig.LINGER_MS_CONFIG, 10);
         props.put(ProducerConfig.BATCH_SIZE_CONFIG, 32768);
-        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
+        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
 
         return new DefaultKafkaProducerFactory<>(props);
     }

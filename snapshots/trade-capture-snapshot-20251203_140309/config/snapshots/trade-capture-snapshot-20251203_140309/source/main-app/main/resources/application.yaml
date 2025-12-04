@@ -31,7 +31,7 @@ spring:
       # Additional reliability settings
       linger-ms: 10
       batch-size: 32768
-      compression-type: gzip
+      compression-type: snappy
     properties:
       schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
       # Auto-register schemas (set false for production with pre-registered schemas)

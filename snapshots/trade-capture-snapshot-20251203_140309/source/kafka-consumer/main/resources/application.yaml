@@ -1,0 +1,20 @@
+server:
+  port: 4001
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: trade-consumer-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
+      properties:
+        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+        specific.protobuf.value.type: com.pms.kafka_consumer.proto.TradeEventProto
+    listener:
+      ack-mode: manual_immediate
+
+app:
+  kafka:
+    topic: ${KAFKA_TOPIC:trade-events}
