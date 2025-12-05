@@ -1,17 +1,45 @@
-# build stage for simulator
-FROM maven:3.9.3-eclipse-temurin-17 AS build
+# Multi-stage build for trade-simulator application
+FROM maven:3.9.6-eclipse-temurin-21 AS build
+
+# Set working directory
 WORKDIR /workspace
+
+# Copy pom.xml first for better layer caching
 COPY pom.xml .
+
+# Download dependencies (this layer will be cached if pom.xml doesn't change)
+RUN mvn dependency:go-offline -B
+
+# Copy source code
 COPY src ./src
-RUN mvn -B -DskipTests package
 
-# runtime stage
-FROM eclipse-temurin:17-jre-alpine
-ARG APP_HOME=/opt/app
-WORKDIR ${APP_HOME}
-COPY --from=build /workspace/target/trade-simulator-0.0.1-SNAPSHOT.jar app.jar
+# Build the application
+RUN mvn clean package -DskipTests -B
 
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
+
+# Create non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set working directory
+WORKDIR /opt/app
+
+# Copy the built JAR from build stage
+COPY --from=build /workspace/target/trade-simulator-*.jar app.jar
+
+# Change ownership to non-root user
+RUN chown -R appuser:appgroup /opt/app
+
+# Switch to non-root user
 USER appuser
 
-ENTRYPOINT ["sh","-c","java -XX:+UseContainerSupport -Xms128m -Xmx512m -jar /opt/app/app.jar"]
+# Expose the application port
+EXPOSE 4000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:4000/actuator/health || exit 1
+
+# Run the application
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -Xms256m -Xmx1g -jar /opt/app/app.jar"]

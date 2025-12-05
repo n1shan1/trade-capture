@@ -1,0 +1,10 @@
+REPOSITORY                        TAG               SIZE
+trade-capture-trade-simulator     latest            281MB
+pms-ingestion-pms-ingestion       latest            537MB
+pms-ingestion                     latest            537MB
+nehanawork1/pms-simulation        1.0               816MB
+redis                             7                 173MB
+postgres                          16                636MB
+confluentinc/cp-kafka             7.5.0             1.33GB
+confluentinc/cp-schema-registry   7.5.0             3.49GB
+rabbitmq                          3.11-management   384MB

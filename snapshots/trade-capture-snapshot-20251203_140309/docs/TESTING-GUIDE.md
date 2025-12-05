@@ -7,8 +7,8 @@ This guide provides complete instructions for testing the trade capture system e
 ## Architecture
 
 ```
-┌─────────────┐     RabbitMQ         ┌──────────────┐     PostgreSQL       ┌─────────────┐
-│  Simulator  │ ──► Streams ───────► │ trade-capture│ ──► (DB Tables) ──►  │   Outbox    │
+┌─────────────┐     RabbitMQ        ┌──────────────┐     PostgreSQL      ┌─────────────┐
+│  Simulator  │ ──► Streams ───────► │ trade-capture│ ──► (DB Tables) ──► │   Outbox    │
 │             │                      │   Service    │                      │ Dispatcher  │
 └─────────────┘                      └──────────────┘                      └─────────────┘
                                                                                    │

@@ -1,0 +1,152 @@
+name: trade-capture
+services:
+  kafka:
+    container_name: kafka
+    depends_on:
+      postgres:
+        condition: service_started
+        required: true
+      rabbitmq:
+        condition: service_started
+        required: true
+    environment:
+      CLUSTER_ID: dOFfvAcdQZKE60Enfcsefg
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:19092
+      KAFKA_CLUSTER_ID: dOFfvAcdQZKE60Enfcsefg
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093
+      KAFKA_MIN_INSYNC_REPLICAS: "1"
+      KAFKA_NODE_ID: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+    hostname: kafka
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - kafka-broker-api-versions --bootstrap-server localhost:9092
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    image: confluentinc/cp-kafka:7.5.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 9092
+        published: "9092"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: kafka_data
+        target: /var/lib/kafka/data
+        volume: {}
+  postgres:
+    container_name: postgres
+    environment:
+      POSTGRES_DB: pmsdb
+      POSTGRES_PASSWORD: pms
+      POSTGRES_USER: pms
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U pms -d pmsdb
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    image: postgres:16
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5432"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: pgdata
+        target: /var/lib/postgresql/data
+        volume: {}
+  rabbitmq:
+    command:
+      - bash
+      - -c
+      - |2
+
+          rabbitmq-plugins enable rabbitmq_stream &&
+          rabbitmq-server
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: guest
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - rabbitmq-diagnostics -q ping
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    image: rabbitmq:3.11-management
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5672
+        published: "5672"
+        protocol: tcp
+      - mode: ingress
+        target: 15672
+        published: "15672"
+        protocol: tcp
+      - mode: ingress
+        target: 5552
+        published: "5552"
+        protocol: tcp
+    volumes:
+      - type: volume
+        source: rabbitmq_data
+        target: /var/lib/rabbitmq
+        volume: {}
+  schema-registry:
+    container_name: schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+        required: true
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:19092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://localhost:8081/subjects || exit 1
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+    image: confluentinc/cp-schema-registry:7.5.0
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 8081
+        published: "8081"
+        protocol: tcp
+networks:
+  default:
+    name: trade-capture_default
+volumes:
+  kafka_data:
+    name: trade-capture_kafka_data
+  pgdata:
+    name: trade-capture_pgdata
+  rabbitmq_data:
+    name: trade-capture_rabbitmq_data

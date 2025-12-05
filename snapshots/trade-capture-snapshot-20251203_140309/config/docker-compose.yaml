@@ -94,81 +94,45 @@ services:
       retries: 5
       start_period: 30s
 
-  pms-simulator-temp:
-    image: niishantdev/pms-simulator-temp:latest
-    container_name: pms-simulator-temp
-    environment:
-      RABBIT_HOST: rabbitmq
-      RABBIT_PORT: 5672
-      RABBIT_USER: guest
-      RABBIT_PASS: guest
-      RABBIT_STREAM_NAME: trade-events-stream
-      RABBIT_STREAM_HOST: rabbitmq
-      RABBIT_STREAM_PORT: 5552
-    ports:
-      - "4000:4000"
-    depends_on:
-      - rabbitmq
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+  # trade-capture:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: trade-capture
+  #   environment:
+  #     DB_HOST: postgres
+  #     DB_PORT: 5432
+  #     DB_NAME: pmsdb
+  #     DB_USER: pms
+  #     DB_PASS: pms
+  #     RABBIT_HOST: rabbitmq
+  #     RABBIT_PORT: 5672
+  #     RABBIT_USER: guest
+  #     RABBIT_PASS: guest
+  #     KAFKA_BOOTSTRAP: kafka:9092
+  #     APP_INGESTION_QUEUE: trade.ingest.raw
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - postgres
+  #     - rabbitmq
+  #     - kafka
 
-  trade-capture:
-    image: niishantdev/pms-trade-capture:latest
-    container_name: trade-capture
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: pmsdb
-      DB_USER: pms
-      DB_PASS: pms
-      RABBIT_STREAM_NAME: trade-events-stream
-      RABBIT_HOST: rabbitmq
-      RABBIT_STREAM_PORT: 5552
-      RABBIT_CONSUMER_NAME: trade-capture
-      KAFKA_BOOTSTRAP: kafka:19092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      AUTO_REGISTER_SCHEMAS: true
-      TRADE_TOPIC_NAME: raw-trades-proto
-      BATCH_MAX_SIZE_PER_PORTFOLIO: 100
-      BATCH_FLUSH_INTERVAL_MS: 200
-      OUTBOX_POLL_INTERVAL_MS: 500
-      OUTBOX_BATCH_SIZE: 100
-    ports:
-      - "8082:8082"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      schema-registry:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
-  kafka-consumer:
-    image: kafka-consumer:latest
-    container_name: kafka-consumer
-    environment:
-      KAFKA_BOOTSTRAP: kafka:19092
-      SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      KAFKA_TOPIC: raw-trades-proto
-    ports:
-      - "4001:8082"
-    depends_on:
-      kafka:
-        condition: service_healthy
-      schema-registry:
-        condition: service_healthy
+  # trade-simulator:
+  #   build:
+  #     context: ./simulator
+  #     dockerfile: Dockerfile
+  #   container_name: trade-simulator
+  #   environment:
+  #     RABBIT_HOST: rabbitmq
+  #     RABBIT_PORT: 5672
+  #     RABBIT_USER: guest
+  #     RABBIT_PASS: guest
+  #     APP_INGESTION_QUEUE: trade.ingest.raw
+  #     APP_SIMULATOR_RATE: 50
+  #     APP_SIMULATOR_DURATION: 20
+  #   depends_on:
+  #     - rabbitmq
 
 volumes:
   pgdata:
